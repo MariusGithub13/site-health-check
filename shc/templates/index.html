@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>{{ t('title') }}</h1>
+<p>{{ t('lead') }}</p>
+{% if error %}<div class="box err" role="alert">{{ error }}</div>{% endif %}
+<form method="post" action="{{ url_for('scan_route') }}">
+<input type="hidden" name="lang" value="{{ lang }}">
+<label for="url">{{ t('url_label') }}</label>
+<input id="url" name="url" type="text" inputmode="url" autocomplete="url" placeholder="https://example.com" value="{{ url or '' }}" required>
+<label for="pages">{{ t('pages_label', hard_max, default_pages) }}</label>
+<input id="pages" name="pages" type="number" min="1" max="{{ hard_max }}" value="{{ default_pages }}">
+<p class="muted">{{ t('wait') }}</p>
+<p><button class="btn" type="submit">{{ t('run') }}</button></p>
+</form>
+<div class="box"><strong>{{ t('honesty_title') }}</strong><p>{{ t('honesty') }}</p></div>
+<p class="muted">{{ t('privacy') }}</p>
+{% endblock %}

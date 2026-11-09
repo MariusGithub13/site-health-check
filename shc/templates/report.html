@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>{{ t('report_for') }} <span class="url">{{ r.url }}</span></h1>
+<p class="muted">{{ t('when') }}: {{ r.when }} &middot; {{ t('scanned') }}: {{ r.pages|length }} {{ t('of') }} {{ r.requested }}</p>
+{% if not pdf %}<div class="actions noprint">
+<a class="btn" href="{{ pdf_url }}">{{ t('download_pdf') }}</a>
+<a class="btn alt" href="{{ url_for('index', lang=lang) }}">{{ t('new_scan') }}</a>
+</div>{% endif %}
+<div class="box"><strong>{{ t('honesty_title') }}</strong><p>{{ t('honesty') }}</p></div>
+{% if r.fatal %}<div class="box err" role="alert">{{ fatal_text }}</div>{% endif %}
+
+<h2>{{ t('summary') }}</h2>
+<table>
+{% for c in order %}<tr><th scope="row">{{ t('check_' + c) }}</th><td><span class="badge s-{{ r.checks[c].state }}">{{ t(r.checks[c].state) }}</span></td></tr>{% endfor %}
+</table>
+
+{% for c in order %}{% set ch = r.checks[c] %}
+<section class="check">
+<h2>{{ t('check_' + c) }} <span class="badge s-{{ ch.state }}">{{ t(ch.state) }}</span></h2>
+<p class="muted">{{ t('desc_' + c) }}</p>
+{% if c != 'links' %}
+  {% for p in ch.pages %}
+  <h3><span class="badge s-{{ p.state }}">{{ t(p.state) }}</span> <span class="url">{{ p.url }}</span></h3>
+  {% if p.findings %}<ul>{% for f in p.findings %}<li>{{ finding(f) }}</li>{% endfor %}</ul>
+  {% elif p.state == 'passed' %}<p class="muted">{{ t('no_findings') }}</p>{% endif %}
+  {% endfor %}
+{% elif r.links %}
+  {% set L = r.links %}
+  <p>{{ t('control') }}:
+  {% if L.control.state == 'passed' %}{{ t('control_ok', L.control.detail) }}
+  {% elif L.control.state == 'failed' %}<strong>{{ t('control_bad') }}</strong>
+  {% else %}<strong>{{ t('control_err', L.control.detail) }}</strong>{% endif %}</p>
+  {% if L.control.state == 'passed' %}
+  <p>{{ t('links_examined') }}: {{ L.examined }} {{ t('of') }} {{ L.total }}</p>
+  {% if L.total > L.examined + L.skipped_robots %}<p>{{ t('capped', L.examined + L.skipped_robots, L.total) }}</p>{% endif %}
+  {% if L.skipped_robots %}<p>{{ t('robots_skipped', L.skipped_robots) }}</p>{% endif %}
+  {% if L.broken %}<h3>{{ t('links_broken') }}</h3><ul>{% for b in L.broken %}<li><span class="url">{{ b.url }}</span> ({{ b.detail }}) {{ t('found_on') }} <span class="url">{{ b.source }}</span></li>{% endfor %}</ul>{% endif %}
+  {% if L.unknown %}<h3>{{ t('links_unknown') }}</h3><ul>{% for b in L.unknown %}<li><span class="url">{{ b.url }}</span> ({{ b.detail }})</li>{% endfor %}</ul>{% endif %}
+  {% endif %}
+{% endif %}
+</section>
+{% endfor %}
+
+{% if r.skipped %}<h2>{{ t('skipped') }}</h2><ul>{% for s in r.skipped %}<li class="url">{{ s.url }}</li>{% endfor %}</ul>{% endif %}
+<h2>{{ t('pages_list') }}</h2>
+<ul>{% for p in r.pages %}<li class="url">{{ p }}</li>{% endfor %}</ul>
+{% endblock %}

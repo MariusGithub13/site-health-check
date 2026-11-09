@@ -1,0 +1,14 @@
+services:
+  site-health-check:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"     # put a reverse proxy with HTTPS in front; do not publish this port directly
+    environment:
+      SHC_RATE_LIMIT: "6"          # scans per client address per hour
+      # SHC_TRUST_PROXY: "1"       # set only behind a reverse proxy you control (reads X-Forwarded-For)
+    init: true
+    ipc: host                      # Chromium needs this
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

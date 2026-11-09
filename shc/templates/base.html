@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t('title') }}</title>
+<style>
+:root{--bg:#ffffff;--fg:#1a1a1a;--muted:#454545;--line:#767676;--link:#0b3d91;
+--ok-fg:#0b4f22;--ok-bg:#e6f4ea;--bad-fg:#7a1212;--bad-bg:#fdeaea;--unk-fg:#5c3d00;--unk-bg:#fff3d1;--btn:#0b3d91;--btn-fg:#ffffff}
+*{box-sizing:border-box}
+html{font-size:16px}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:1rem;line-height:1.55}
+main,header .in,footer .in{max-width:860px;margin:0 auto;padding:0 16px}
+header{border-bottom:2px solid var(--fg);padding:14px 0}
+header .in{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:1.5rem;margin:1rem 0 .5rem;line-height:1.25}
+h2{font-size:1.25rem;margin:1.6rem 0 .4rem;line-height:1.3}
+h3{font-size:1.05rem;margin:1rem 0 .3rem}
+p,li{max-width:70ch;overflow-wrap:anywhere}
+a{color:var(--link);text-decoration:underline}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #000;outline-offset:2px}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+label{display:block;font-weight:600;margin:1rem 0 .3rem}
+input[type=text],input[type=number]{width:100%;font-size:1rem;padding:12px;border:2px solid var(--fg);border-radius:4px;background:#fff;color:var(--fg);min-height:44px}
+input[type=number]{max-width:8rem}
+.btn{display:inline-block;background:var(--btn);color:var(--btn-fg);font-size:1rem;font-weight:600;padding:12px 20px;border:2px solid var(--btn);border-radius:4px;min-height:44px;text-decoration:none;cursor:pointer}
+.btn.alt{background:#fff;color:var(--btn)}
+.lang{display:inline-block;padding:10px 12px;min-height:44px;border:2px solid var(--fg);border-radius:4px;color:var(--fg);font-weight:600}
+.box{border:2px solid var(--line);border-radius:6px;padding:12px 14px;margin:1rem 0;background:#fff}
+.err{border-color:var(--bad-fg);background:var(--bad-bg);color:var(--bad-fg)}
+.badge{display:inline-block;font-weight:700;padding:2px 10px;border-radius:4px;border:2px solid;font-size:.95rem}
+.s-passed{color:var(--ok-fg);background:var(--ok-bg);border-color:var(--ok-fg)}
+.s-failed{color:var(--bad-fg);background:var(--bad-bg);border-color:var(--bad-fg)}
+.s-unknown{color:var(--unk-fg);background:var(--unk-bg);border-color:var(--unk-fg)}
+.check{border:2px solid var(--line);border-radius:6px;padding:10px 14px;margin:1rem 0}
+.check h2{margin:.2rem 0}
+ul{padding-left:1.2rem}
+code,.url{overflow-wrap:anywhere;word-break:break-word}
+table{border-collapse:collapse;width:100%}
+td,th{border:1px solid var(--line);padding:8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+footer{border-top:2px solid var(--fg);margin-top:2rem;padding:16px 0 28px}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin:1rem 0}
+@media print{.actions,.noprint{display:none}a{color:#000}.check{break-inside:avoid}}
+</style>
+</head>
+<body>
+<header><div class="in"><strong>{{ t('title') }}</strong>
+<a class="lang noprint" href="{{ switch_url }}" hreflang="{{ other }}" lang="{{ other }}">{{ t('lang_switch') }}</a></div></header>
+<main>
+{% block body %}{% endblock %}
+</main>
+<footer><div class="in">
+<p><strong>{{ t('footer_cta') }}</strong> <a href="{{ t('footer_url') }}">{{ t('footer_url') }}</a></p>
+<p class="muted small">{{ t('footer_note') }}</p>
+</div></footer>
+</body>
+</html>
