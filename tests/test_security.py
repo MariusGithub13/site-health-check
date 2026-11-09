@@ -92,3 +92,81 @@ def test_rate_limiter_window():
     assert not rl.allow("a", 2)
     assert rl.allow("b", 2)           # other clients unaffected
     assert rl.allow("a", 101)         # window passed
+
+
+# --- DNS rebinding: the validated address is the one that is connected to --------------------------------
+import http.server, threading, socket as _socket
+from shc import security
+
+
+class _H(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = ("host=" + str(self.headers.get("Host"))).encode()
+        self.send_response(200); self.send_header("Content-Length", str(len(body))); self.end_headers()
+        self.wfile.write(body)
+    def log_message(self, *a):
+        pass
+
+
+@pytest.fixture
+def local_server():
+    srv = http.server.HTTPServer(("127.0.0.1", 0), _H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    yield srv.server_address[1]
+    srv.shutdown()
+
+
+def test_connection_goes_to_the_validated_ip_not_to_a_fresh_dns_answer(local_server, monkeypatch):
+    monkeypatch.setattr(security, "_check_peer", lambda s, ip: None)   # the spy below redirects to loopback
+    # Checker sees a public IP; "real" DNS (what the HTTP client would have asked) says 127.0.0.1.
+    real = _socket.getaddrinfo
+    def hostile(host, port, *a, **k):
+        if host == "rebind.test":
+            return [(_socket.AF_INET, _socket.SOCK_STREAM, 6, "", ("127.0.0.1", local_server))]
+        return real(host, port, *a, **k)
+    monkeypatch.setattr(_socket, "getaddrinfo", hostile)
+    connected = []
+    orig = _socket.create_connection
+    def spy(addr, *a, **k):
+        connected.append(addr[0])
+        return orig(("127.0.0.1", local_server) if addr[0] == "93.184.216.34" else addr, *a, **k)
+    monkeypatch.setattr(security.socket, "create_connection", spy)
+    res = resolver_for({"rebind.test": ["93.184.216.34"]})
+    # the pinned connect targets 93.184.216.34 (redirected by the spy to our local server only to stay offline)
+    r = safe_fetch("http://rebind.test/", resolver=res)
+    assert connected == ["93.184.216.34"]          # never the name, never 127.0.0.1
+    assert r.status == 200 and r.text == "host=rebind.test"   # Host header stays the original name
+
+
+def test_connection_without_validated_address_is_refused():
+    with pytest.raises(SSRFError):
+        security.pinned_request("GET", "http://x.test/", ip=None, timeout=2)
+
+
+def test_pinned_private_ip_refused_even_if_it_reaches_the_connector():
+    with pytest.raises(SSRFError):
+        security.pinned_request("GET", "http://x.test/", ip="127.0.0.1", timeout=2)
+
+
+def test_hostile_dns_flip_private_second_answer_is_not_used(local_server, monkeypatch):
+    monkeypatch.setattr(security, "_check_peer", lambda s, ip: None)
+    # first answer public (validated), any later lookup would be private: the client must not look again
+    calls = {"n": 0}
+    def flip(host, port, type=0):
+        calls["n"] += 1
+        ip = "93.184.216.34" if calls["n"] == 1 else "127.0.0.1"
+        return [(_socket.AF_INET, _socket.SOCK_STREAM, 6, "", (ip, port))]
+    seen = []
+    orig = _socket.create_connection
+    monkeypatch.setattr(security.socket, "create_connection",
+                        lambda addr, *a, **k: (seen.append(addr[0]), orig(("127.0.0.1", local_server), *a, **k))[1])
+    safe_fetch("http://flip.test/", resolver=flip)
+    assert calls["n"] == 1 and seen == ["93.184.216.34"]
+
+
+def test_peer_address_revalidated_after_connect(local_server):
+    # a connection that lands on loopback is refused even if the pinned IP looked public
+    s = _socket.create_connection(("127.0.0.1", local_server))
+    with pytest.raises(SSRFError):
+        security._check_peer(s, "93.184.216.34")
+    s.close()
